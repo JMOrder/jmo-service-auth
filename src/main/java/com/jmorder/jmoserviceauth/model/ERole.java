@@ -1,0 +1,6 @@
+package com.jmorder.jmoserviceauth.model;
+
+public enum ERole {
+    ROLE_USER,
+    ROLE_ADMIN
+}
