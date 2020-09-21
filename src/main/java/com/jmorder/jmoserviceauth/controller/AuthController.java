@@ -3,19 +3,21 @@ package com.jmorder.jmoserviceauth.controller;
 import com.jmorder.jmoserviceauth.controller.payload.request.LoginRequest;
 import com.jmorder.jmoserviceauth.controller.payload.request.RegistrationRequest;
 import com.jmorder.jmoserviceauth.controller.payload.response.JWTResponse;
+import com.jmorder.jmoserviceauth.messageq.envelop.UserMessage;
 import com.jmorder.jmoserviceauth.model.User;
 import com.jmorder.jmoserviceauth.model.ERole;
 import com.jmorder.jmoserviceauth.model.RefreshToken;
+import com.jmorder.jmoserviceauth.security.jwt.JWTConstants;
 import com.jmorder.jmoserviceauth.security.jwt.JWTUtils;
+import com.jmorder.jmoserviceauth.service.RefreshTokenService;
 import com.jmorder.jmoserviceauth.service.UserService;
 import com.mongodb.lang.Nullable;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -35,7 +37,6 @@ import javax.validation.Valid;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -45,11 +46,11 @@ public class AuthController {
     @Autowired
     private JWTUtils jwtUtils;
     @Autowired
-    private MongoOperations mongoTemplate;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    @Autowired
     private UserService userService;
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+    @Autowired
+    KafkaTemplate<String, UserMessage> userKafkaTemplate;
 
     @HystrixCommand
     @PostMapping
@@ -66,21 +67,24 @@ public class AuthController {
             } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
-            List<String> roles = user.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toList());
 
             this.processRefreshToken(response, user.getUsername());
-            return ResponseEntity.ok(new JWTResponse(jwt, user.getId(), user.getUsername(), roles, user));
+            JWTResponse jwtResponse = JWTResponse.builder()
+                    .token(jwt)
+                    .type(JWTConstants.TOKEN_PREFIX.trim())
+                    .id(user.getId())
+                    .email(user.getEmail())
+                    .build();
+            return ResponseEntity.ok(jwtResponse);
         } catch (AuthenticationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
     }
 
     @DeleteMapping
-    public ResponseEntity<?> logout(@Nullable @CookieValue(value = "refresh_token") String refreshTokenId, HttpServletResponse response) {
+    public ResponseEntity<?> logout(@Nullable @CookieValue(value = "refresh_token", required = false) String refreshTokenId, HttpServletResponse response) {
         if (refreshTokenId != null) {
-            mongoTemplate.remove(Query.query(Criteria.where("id").is(refreshTokenId)), RefreshToken.class);
+            refreshTokenService.removeById(refreshTokenId);
             Cookie refreshTokenCookie = new Cookie("refresh_token", null);
             refreshTokenCookie.setMaxAge(0); // immediately expire
             refreshTokenCookie.setPath("/");
@@ -91,57 +95,51 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegistrationRequest registrationRequest) {
-        if (mongoTemplate.exists(Query.query(Criteria.where("email").is(registrationRequest.getEmail())), User.class)) {
+        if (userService.existsUserByEmail(registrationRequest.getEmail())) {
             return ResponseEntity.unprocessableEntity().build();
         }
 
-        User user = User
-                .builder()
-                .email(registrationRequest.getEmail())
-                .password(passwordEncoder.encode(registrationRequest.getPassword()))
-                .authorities(new ArrayList<GrantedAuthority>(Collections.singletonList(new SimpleGrantedAuthority(ERole.ROLE_USER.name()))))
-                .build();
-
-        mongoTemplate.insert(user);
-//        userKafkaTemplate.send("fs-user-topic", registrationRequest.toMessage());
+        userService.createUserByRegistrationRequest(registrationRequest);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@CookieValue(value = "refresh_token") String refreshTokenId,
+    public ResponseEntity<?> refreshToken(@Nullable @CookieValue(value = "refresh_token", required = false) String refreshTokenId,
                                           HttpServletRequest request, HttpServletResponse response) {
-        if (refreshTokenId != null) {
-            RefreshToken existingToken = mongoTemplate.findById(refreshTokenId, RefreshToken.class);
+        if (refreshTokenId == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        RefreshToken existingToken = refreshTokenService.findById(refreshTokenId);
 
-            String username = Objects.requireNonNull(existingToken).getUsername();
-            User user = (User) userService.loadUserByUsername(username);
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    user, null, user.getAuthorities());
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        String username = Objects.requireNonNull(existingToken).getUsername();
+        User user = (User) userService.loadUserByUsername(username);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                user, null, user.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            String jwt;
-            try {
-                jwt = jwtUtils.generateJwtToken(user);
-            } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
-
-            List<String> roles = user.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toList());
-
-            mongoTemplate.remove(Query.query(Criteria.where("id").is(refreshTokenId)), RefreshToken.class);
-            this.processRefreshToken(response, username);
-
-            return ResponseEntity.ok(new JWTResponse(jwt, user.getId(), user.getUsername(), roles, user));
+        String jwt;
+        try {
+            jwt = jwtUtils.generateJwtToken(user);
+        } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        refreshTokenService.removeById(refreshTokenId);
+        this.processRefreshToken(response, username);
+
+        JWTResponse jwtResponse = JWTResponse.builder()
+                .token(jwt)
+                .type(JWTConstants.TOKEN_PREFIX.trim())
+                .id(user.getId())
+                .email(user.getEmail())
+                .build();
+
+        return ResponseEntity.ok(jwtResponse);
     }
 
-    private void processRefreshToken(HttpServletResponse response, String jwtId) {
-        RefreshToken refreshToken = mongoTemplate.insert(new RefreshToken(jwtId));
+    private void processRefreshToken(HttpServletResponse response, String username) {
+        RefreshToken refreshToken = refreshTokenService.createRefreshTokenByUsername(username);
         Cookie refreshTokenCookie = new Cookie("refresh_token", refreshToken.getId());
         refreshTokenCookie.setMaxAge(24 * 60 * 60); // expires in 7 days
         refreshTokenCookie.setHttpOnly(true);
@@ -149,5 +147,4 @@ public class AuthController {
 //    refreshTokenCookie.setSecure(true); // TODO: Enable this when deploy to production is ready
         response.addCookie(refreshTokenCookie);
     }
-
 }

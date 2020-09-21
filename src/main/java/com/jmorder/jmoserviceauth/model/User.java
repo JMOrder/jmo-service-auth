@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,11 +29,21 @@ public class User implements UserDetails {
 
     @NotBlank
     @Email
+    @Indexed(unique = true)
     private String email;
 
     @NotBlank
-    @Email
     private String password;
+
+    @NotBlank
+    @Indexed(unique = true)
+    private String phone;
+
+    @Field
+    private boolean isEmailVerified;
+
+    @Field
+    private boolean isPhoneVerified;
 
     @Field
     @CreatedDate

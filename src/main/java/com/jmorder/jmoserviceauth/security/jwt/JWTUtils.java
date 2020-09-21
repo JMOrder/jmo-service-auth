@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.UUID;
 
 @Component
-@Slf4j
 public class JWTUtils {
     private static final String ROLE_CLAIM_NAME = "ath";
     @Value("${jmo.auth.jwt.rsa-private-key}")
