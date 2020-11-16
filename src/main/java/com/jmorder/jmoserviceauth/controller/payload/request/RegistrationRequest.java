@@ -2,6 +2,7 @@ package com.jmorder.jmoserviceauth.controller.payload.request;
 
 import com.jmorder.jmoserviceauth.config.pubsub.envelop.UserMessage;
 import lombok.Data;
+import lombok.ToString;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
@@ -13,6 +14,7 @@ public class RegistrationRequest {
 
     @NotBlank
     @Size(min = 8, max = 32)
+    @ToString.Exclude
     private String password;
 
     @NotBlank
@@ -24,24 +26,4 @@ public class RegistrationRequest {
 
     @NotBlank
     private String lastName;
-
-    public UserMessage toMessage() {
-        return UserMessage.builder()
-                .email(email)
-                .phone(phone)
-                .firstName(firstName)
-                .lastName(lastName)
-                .build();
-    }
-
-    @Override
-    public String toString() {
-        return "RegistrationRequest{" +
-                "email='" + email + '\'' +
-                ", password='" + password + '\'' +
-                ", phone='" + phone + '\'' +
-                ", firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
-                '}';
-    }
 }

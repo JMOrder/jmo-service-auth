@@ -100,7 +100,6 @@ public class AuthController {
         if (userService.existsUserByUsername(registrationRequest.getPhone())) {
             return ResponseEntity.unprocessableEntity().build();
         }
-        log.info(registrationRequest.toString());
 
         userService.createUserByRegistrationRequest(registrationRequest);
         return ResponseEntity.ok().build();
@@ -110,7 +109,6 @@ public class AuthController {
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@Nullable @CookieValue(value = "refresh_token", required = false) String refreshTokenId,
                                           HttpServletRequest request, HttpServletResponse response) {
-        System.out.println(refreshTokenId);
         if (refreshTokenId == null)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         RefreshToken existingToken = refreshTokenService.findById(refreshTokenId);

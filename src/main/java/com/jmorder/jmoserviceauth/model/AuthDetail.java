@@ -21,14 +21,4 @@ public class AuthDetail {
 
     @Transient
     private Date expiresAt;
-
-    @Override
-    public String toString() {
-        return "AuthDetail{" +
-                "platform=" + platform +
-                ", userId='" + userId + '\'' +
-                ", connectedAt=" + connectedAt +
-                ", expiresAt=" + expiresAt +
-                '}';
-    }
 }

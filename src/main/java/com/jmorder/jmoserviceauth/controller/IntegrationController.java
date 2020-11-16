@@ -1,7 +1,6 @@
 package com.jmorder.jmoserviceauth.controller;
 
 import com.jmorder.jmoserviceauth.controller.payload.request.PerformIntegrationRequest;
-import com.jmorder.jmoserviceauth.controller.payload.response.CheckIntegrationResponse;
 import com.jmorder.jmoserviceauth.controller.payload.response.ConnectedUser;
 import com.jmorder.jmoserviceauth.controller.payload.response.PerformIntegrationResponse;
 import com.jmorder.jmoserviceauth.model.AuthDetail;

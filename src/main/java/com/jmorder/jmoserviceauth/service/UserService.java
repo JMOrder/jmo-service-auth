@@ -1,11 +1,13 @@
 package com.jmorder.jmoserviceauth.service;
 
 import com.jmorder.jmoserviceauth.config.pubsub.PubsubConfig;
+import com.jmorder.jmoserviceauth.config.pubsub.envelop.UserMessage;
 import com.jmorder.jmoserviceauth.controller.payload.request.RegistrationRequest;
 import com.jmorder.jmoserviceauth.model.AuthDetail;
 import com.jmorder.jmoserviceauth.model.ERole;
 import com.jmorder.jmoserviceauth.model.User;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -30,6 +32,8 @@ public class UserService implements UserDetailsService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private PubsubConfig.PubsubOutboundGateway pubsubOutboundGateway;
+    @Autowired
+    private ModelMapper modelMapper;
 
     public User loadUserByEmail(String email) throws UsernameNotFoundException {
         return mongoTemplate.findOne(Query.query(Criteria.where("email").is(email)), ENTITY_CLASS);
@@ -65,8 +69,8 @@ public class UserService implements UserDetailsService {
                 .isPhoneVerified(false)
                 .authorities(new ArrayList<GrantedAuthority>(Collections.singletonList(new SimpleGrantedAuthority(ERole.ROLE_USER.name()))))
                 .build();
+        pubsubOutboundGateway.sendUserToPubsub(modelMapper.map(registrationRequest, UserMessage.class));
         user = mongoTemplate.insert(user);
-        pubsubOutboundGateway.sendUserToPubsub(registrationRequest.toMessage());
         return user;
     }
 
