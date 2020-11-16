@@ -5,9 +5,10 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 
 @Data
-public class LoginRequest {
+public class KakaoLoginRequest {
     @NotBlank
-    private String email;
+    private String code;
+
     @NotBlank
-    private String password;
+    private String redirectUri;
 }

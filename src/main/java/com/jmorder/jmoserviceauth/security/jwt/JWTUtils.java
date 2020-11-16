@@ -2,7 +2,9 @@ package com.jmorder.jmoserviceauth.security.jwt;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import lombok.extern.slf4j.Slf4j;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.jmorder.jmoserviceauth.model.AuthDetail;
+import com.jmorder.jmoserviceauth.model.EAuthPlatform;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,23 +25,26 @@ import java.util.UUID;
 @Component
 public class JWTUtils {
     private static final String ROLE_CLAIM_NAME = "ath";
+    private static final String PLATFORM_CLAIM_NAME = "pcn";
+    private static final String CONNECTED_AT_CLAIM_NAME = "ccn";
+
     @Value("${jmo.auth.jwt.rsa-private-key}")
     private String rsaPrivateKeyValue;
     @Value("${jmo.auth.jwt.rsa-public-key}")
     private String rsaPublicKeyValue;
     @Value("${jmo.auth.jwt.duration}")
-    private int duration;
+    private int DEFAULT_DURATION;
 
-    public String generateJwtToken(UserDetails userDetails) throws InvalidKeySpecException, NoSuchAlgorithmException {
-        return this.generateJwtToken(userDetails.getUsername(),
-                userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toArray(String[]::new));
+    public String generateAuthJwt(UserDetails userDetails) throws InvalidKeySpecException, NoSuchAlgorithmException {
+        return this.generateAuthJwt(userDetails, DEFAULT_DURATION);
     }
 
-    private String generateJwtToken(String username, String[] authorities)
-            throws InvalidKeySpecException, NoSuchAlgorithmException {
+    public String generateAuthJwt(UserDetails userDetails, int duration) throws InvalidKeySpecException, NoSuchAlgorithmException {
+        String[] authorities = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority).toArray(String[]::new);
         return JWT.create()
                 .withJWTId(UUID.randomUUID().toString())
-                .withSubject(username)
+                .withSubject(userDetails.getUsername())
                 .withIssuer(JWTConstants.TOKEN_ISSUER)
                 .withAudience(JWTConstants.TOKEN_AUDIENCE)
                 .withIssuedAt(new Date())
@@ -48,8 +53,45 @@ public class JWTUtils {
                 .sign(Algorithm.RSA256(loadPublicKey(), loadPrivateKey()));
     }
 
-    public String getUsernameFromJwtToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException {
+    public String generateAuthJwt(UserDetails userDetails, Date expiresAt) throws InvalidKeySpecException, NoSuchAlgorithmException {
+        String[] authorities = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority).toArray(String[]::new);
+        return JWT.create()
+                .withJWTId(UUID.randomUUID().toString())
+                .withSubject(userDetails.getUsername())
+                .withIssuer(JWTConstants.TOKEN_ISSUER)
+                .withAudience(JWTConstants.TOKEN_AUDIENCE)
+                .withIssuedAt(new Date())
+                .withExpiresAt(expiresAt)
+                .withArrayClaim(ROLE_CLAIM_NAME, authorities)
+                .sign(Algorithm.RSA256(loadPublicKey(), loadPrivateKey()));
+    }
+
+    public String generateAuthDetailJwt(AuthDetail authDetail) throws InvalidKeySpecException, NoSuchAlgorithmException {
+        return JWT.create()
+                .withJWTId(UUID.randomUUID().toString())
+                .withSubject(authDetail.getUserId())
+                .withIssuer(JWTConstants.TOKEN_ISSUER)
+                .withAudience(JWTConstants.TOKEN_AUDIENCE)
+                .withIssuedAt(new Date())
+                .withExpiresAt(authDetail.getExpiresAt())
+                .withClaim(PLATFORM_CLAIM_NAME, authDetail.getPlatform().name())
+                .withClaim(CONNECTED_AT_CLAIM_NAME, authDetail.getConnectedAt())
+                .sign(Algorithm.RSA256(loadPublicKey(), loadPrivateKey()));
+    }
+
+    public String getUsernameFromJwt(String token) throws InvalidKeySpecException, NoSuchAlgorithmException {
         return JWT.require(Algorithm.RSA256(loadPublicKey(), loadPrivateKey())).build().verify(token).getSubject();
+    }
+
+    public AuthDetail getAuthDetailFromJwt(String token) throws InvalidKeySpecException, NoSuchAlgorithmException {
+        DecodedJWT decodedJWT = JWT.require(Algorithm.RSA256(loadPublicKey(), loadPrivateKey())).build().verify(token);
+        return AuthDetail.builder()
+                .userId(decodedJWT.getSubject())
+                .platform(decodedJWT.getClaim(PLATFORM_CLAIM_NAME).as(EAuthPlatform.class))
+                .connectedAt(decodedJWT.getClaim(CONNECTED_AT_CLAIM_NAME).asDate())
+                .expiresAt(decodedJWT.getExpiresAt())
+                .build();
     }
 
     public String parseJwtFrom(String header) {

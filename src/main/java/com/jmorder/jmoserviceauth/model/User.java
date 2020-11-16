@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 
@@ -53,6 +54,9 @@ public class User implements UserDetails {
     @LastModifiedDate
     private Date updatedAt;
 
+    @Field
+    private Collection<AuthDetail> authDetails = new ArrayList<>();
+
     private Collection<? extends GrantedAuthority> authorities;
 
     @Override
@@ -62,7 +66,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        return phone;
     }
 
     @Override
@@ -84,4 +88,5 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
 }

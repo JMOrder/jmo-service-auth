@@ -5,9 +5,9 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 
 @Data
-public class LoginRequest {
+public class PerformIntegrationRequest {
     @NotBlank
-    private String email;
+    String phone;
     @NotBlank
-    private String password;
+    String authDetail;
 }
