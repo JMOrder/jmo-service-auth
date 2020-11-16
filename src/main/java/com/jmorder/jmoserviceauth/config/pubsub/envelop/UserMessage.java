@@ -1,13 +1,10 @@
-package com.jmorder.jmoserviceauth.messageq.envelop;
+package com.jmorder.jmoserviceauth.config.pubsub.envelop;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Builder;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 @Builder
 @Data
 public class UserMessage {

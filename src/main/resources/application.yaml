@@ -1,5 +1,6 @@
 server:
   port: 3001
+  error.include-stacktrace: never
 
 spring:
   application:
@@ -39,12 +40,15 @@ eureka:
     healthcheck:
       enabled: true
 
-kafka:
-  bootstrapAddress: localhost:9092
-  topic:
-    user: jmo-user-topic
+spring.cloud.gcp:
+  project-id: jmorder
+  credentials.location: 'file:./service-account.json'
 
 jmo:
+  kakao:
+    clientId: accc52f7a71f2b130554c98f20337d10
+  topics:
+    data-sync: data-sync
   auth:
     jwt:
       rsa-private-key: |

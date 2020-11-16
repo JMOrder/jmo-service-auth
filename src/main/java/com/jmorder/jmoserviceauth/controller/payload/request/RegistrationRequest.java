@@ -1,6 +1,6 @@
 package com.jmorder.jmoserviceauth.controller.payload.request;
 
-import com.jmorder.jmoserviceauth.messageq.envelop.UserMessage;
+import com.jmorder.jmoserviceauth.config.pubsub.envelop.UserMessage;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -32,5 +32,16 @@ public class RegistrationRequest {
                 .firstName(firstName)
                 .lastName(lastName)
                 .build();
+    }
+
+    @Override
+    public String toString() {
+        return "RegistrationRequest{" +
+                "email='" + email + '\'' +
+                ", password='" + password + '\'' +
+                ", phone='" + phone + '\'' +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                '}';
     }
 }
