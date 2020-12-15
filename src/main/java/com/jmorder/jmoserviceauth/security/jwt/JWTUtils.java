@@ -80,6 +80,17 @@ public class JWTUtils {
                 .sign(Algorithm.RSA256(loadPublicKey(), loadPrivateKey()));
     }
 
+    public String generatePhoneJwt(String phone) throws InvalidKeySpecException, NoSuchAlgorithmException {
+        return JWT.create()
+                .withJWTId(UUID.randomUUID().toString())
+                .withSubject(phone)
+                .withIssuer(JWTConstants.TOKEN_ISSUER)
+                .withAudience(JWTConstants.TOKEN_AUDIENCE)
+                .withIssuedAt(new Date())
+                .withExpiresAt(new Date(new Date().getTime() + DEFAULT_DURATION))
+                .sign(Algorithm.RSA256(loadPublicKey(), loadPrivateKey()));
+    }
+
     public String getUsernameFromJwt(String token) throws InvalidKeySpecException, NoSuchAlgorithmException {
         return JWT.require(Algorithm.RSA256(loadPublicKey(), loadPrivateKey())).build().verify(token).getSubject();
     }

@@ -35,12 +35,24 @@ public class UserService implements UserDetailsService {
     @Autowired
     private ModelMapper modelMapper;
 
+    public User loadUserById(String id) {
+        return mongoTemplate.findById(id, ENTITY_CLASS);
+    }
+
     public User loadUserByEmail(String email) throws UsernameNotFoundException {
-        return mongoTemplate.findOne(Query.query(Criteria.where("email").is(email)), ENTITY_CLASS);
+        User user = mongoTemplate.findOne(Query.query(Criteria.where("email").is(email)), ENTITY_CLASS);
+        if (user == null) {
+            throw new UsernameNotFoundException("User with email: " + email + " is not found");
+        }
+        return user;
     }
 
     public User loadUserByPhone(String phone) throws UsernameNotFoundException {
-        return mongoTemplate.findOne(Query.query(Criteria.where("phone").is(phone)), ENTITY_CLASS);
+        User user = mongoTemplate.findOne(Query.query(Criteria.where("phone").is(phone)), ENTITY_CLASS);
+        if (user == null) {
+            throw new UsernameNotFoundException("User with phone: " + phone + " is not found");
+        }
+        return user;
     }
 
     @Override
@@ -70,8 +82,7 @@ public class UserService implements UserDetailsService {
                 .authorities(new ArrayList<GrantedAuthority>(Collections.singletonList(new SimpleGrantedAuthority(ERole.ROLE_USER.name()))))
                 .build();
         pubsubOutboundGateway.sendUserToPubsub(modelMapper.map(registrationRequest, UserMessage.class));
-        user = mongoTemplate.insert(user);
-        return user;
+        return mongoTemplate.insert(user);
     }
 
     public boolean existsUserByAuthDetail(AuthDetail authDetail) {
@@ -82,8 +93,14 @@ public class UserService implements UserDetailsService {
         return mongoTemplate.findOne(Query.query(Criteria.where("authDetails").is(authDetail)), ENTITY_CLASS);
     }
 
-    public User addAuthDetailToUser(String phone, AuthDetail authDetail) {
+    public User addAuthDetailToUserByUsername(String phone, AuthDetail authDetail) {
         User user = loadUserByUsername(phone);
+        user.getAuthDetails().add(authDetail);
+        return mongoTemplate.save(user);
+    }
+
+    public User addAuthDetailToUserById(String id, AuthDetail authDetail) {
+        User user = loadUserById(id);
         user.getAuthDetails().add(authDetail);
         return mongoTemplate.save(user);
     }

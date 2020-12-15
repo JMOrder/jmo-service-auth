@@ -2,7 +2,7 @@ package com.jmorder.jmoserviceauth.controller;
 
 import com.jmorder.jmoserviceauth.controller.payload.request.PerformIntegrationRequest;
 import com.jmorder.jmoserviceauth.controller.payload.response.ConnectedUser;
-import com.jmorder.jmoserviceauth.controller.payload.response.PerformIntegrationResponse;
+import com.jmorder.jmoserviceauth.controller.payload.response.IntegrationResponse;
 import com.jmorder.jmoserviceauth.model.AuthDetail;
 import com.jmorder.jmoserviceauth.model.User;
 import com.jmorder.jmoserviceauth.security.jwt.JWTUtils;
@@ -49,10 +49,10 @@ public class IntegrationController {
     public ResponseEntity<?> performIntegration(@RequestBody PerformIntegrationRequest requestBody, HttpServletResponse response) {
         try {
             AuthDetail authDetail = jwtUtils.getAuthDetailFromJwt(requestBody.getAuthDetail());
-            User user = userService.addAuthDetailToUser(requestBody.getPhone(), authDetail);
+            User user = userService.addAuthDetailToUserByUsername(requestBody.getPhone(), authDetail);
             String jwt = jwtUtils.generateAuthJwt(user, authDetail.getExpiresAt());
             refreshTokenService.process(response, user);
-            return ResponseEntity.ok(new PerformIntegrationResponse(jwt, modelMapper.map(user, ConnectedUser.class)));
+            return ResponseEntity.ok(new IntegrationResponse(jwt, modelMapper.map(user, ConnectedUser.class)));
         } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

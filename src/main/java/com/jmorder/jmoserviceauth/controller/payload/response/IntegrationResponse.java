@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class PerformIntegrationResponse {
+public class IntegrationResponse {
     private String token;
     private ConnectedUser connectedUser;
 }
