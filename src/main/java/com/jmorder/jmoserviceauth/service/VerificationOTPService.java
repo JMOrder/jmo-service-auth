@@ -3,6 +3,8 @@ package com.jmorder.jmoserviceauth.service;
 import com.jmorder.jmoserviceauth.model.User;
 import com.jmorder.jmoserviceauth.model.VerificationOTP;
 import com.jmorder.jmoserviceauth.service.exceptions.ResourceNotFoundException;
+import com.jmorder.jmoserviceauth.util.FirebaseDynamicLink;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -11,6 +13,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class VerificationOTPService {
     private static final Class<VerificationOTP> ENTITY_CLASS = VerificationOTP.class;
     @Autowired
@@ -18,6 +21,9 @@ public class VerificationOTPService {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @Autowired
+    FirebaseDynamicLink firebaseDynamicLink;
 
     public boolean isOTPMatch(String id, String otp) {
         return mongoTemplate.exists(Query.query(Criteria.where("id").is(id).and("otp").is(otp)), ENTITY_CLASS);

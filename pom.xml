@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.jmorder</groupId>
-	<artifactId>jmo-service-user</artifactId>
+	<artifactId>jmo-service-auth</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>jmo-service-user</name>
+	<name>jmo-service-auth</name>
 	<description>JM Order Authentication Service</description>
 
 	<properties>
@@ -74,6 +74,10 @@
 			<artifactId>lombok</artifactId>
 			<version>1.18.16</version>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>javax.validation</groupId>
