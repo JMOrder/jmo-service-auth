@@ -9,8 +9,8 @@ spring:
     mongodb:
       host: localhost
       port: 27017
-      database: jmo-auth-dev
-      authentication-database: jmo-auth-dev
+      database: jmo-service-auth-development
+      authentication-database: admin
       username: jmorderadmin
       password: Admin123Admin123
       auto-index-creation: true
@@ -45,6 +45,16 @@ spring.cloud.gcp:
   credentials.location: 'file:./service-account.json'
 
 jmo:
+  firebase:
+    web-api-key: AIzaSyDEt7wa6Y0qjkEXuWriA3DcqjBigPzJR3E
+    dynamic-link:
+      url-prefix: https://jmorder.page.link
+      web-host: https://jmorder.com
+      android-package-name: com.rostradamus.jmorder_app
+      ios-bundle-id: com.rostradamus.jmorderApp
+      ios-app-store-id: 1545071809
+      fallback-link: https://jmorder.com/fallback
+
   kakao:
     clientId: accc52f7a71f2b130554c98f20337d10
   topics:
