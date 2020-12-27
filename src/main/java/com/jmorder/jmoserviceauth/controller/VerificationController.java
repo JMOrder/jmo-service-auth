@@ -1,16 +1,15 @@
 package com.jmorder.jmoserviceauth.controller;
 
 import com.jmorder.jmoserviceauth.controller.payload.response.ConnectedUser;
-import com.jmorder.jmoserviceauth.controller.payload.response.IntegrationResponse;
 import com.jmorder.jmoserviceauth.controller.payload.response.LoginResponse;
 import com.jmorder.jmoserviceauth.controller.payload.response.RequestVerificationResponse;
 import com.jmorder.jmoserviceauth.model.AuthDetail;
 import com.jmorder.jmoserviceauth.model.User;
-import com.jmorder.jmoserviceauth.model.VerificationOTP;
+import com.jmorder.jmoserviceauth.model.OnetimePassword;
 import com.jmorder.jmoserviceauth.security.jwt.JWTUtils;
 import com.jmorder.jmoserviceauth.service.RefreshTokenService;
 import com.jmorder.jmoserviceauth.service.UserService;
-import com.jmorder.jmoserviceauth.service.VerificationOTPService;
+import com.jmorder.jmoserviceauth.service.VerificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,11 +26,11 @@ import java.util.Date;
 import java.util.Map;
 
 @RestController
-@RequestMapping("registration")
+@RequestMapping("verification")
 @Slf4j
-public class RegistrationController {
+public class VerificationController {
     @Autowired
-    VerificationOTPService verificationOTPService;
+    VerificationService verificationService;
 
     @Autowired
     UserService userService;
@@ -46,40 +45,35 @@ public class RegistrationController {
     ModelMapper modelMapper;
 
     @PostMapping
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("verify")
     public ResponseEntity<?> requestVerification(@RequestBody Map<String, String> body) {
         // TODO: JMO-13: Method body will have to send actual request to Twilio with Verification Code (OTP)
         String phone = body.get("phone");
-        VerificationOTP verificationOTP = verificationOTPService.createVerificationOTP(phone);
+        OnetimePassword onetimePassword = verificationService.createVerificationOTP(phone);
 
-        Date expiresAt = Date.from(verificationOTP.getCreatedAt().toInstant().plus(Duration.ofSeconds(VerificationOTP.getDefaultExpiryDurationInSeconds())));
+        Date expiresAt = Date.from(onetimePassword.getCreatedAt().toInstant().plus(Duration.ofSeconds(OnetimePassword.getDefaultExpiryDurationInSeconds())));
         var responseBody = RequestVerificationResponse.builder()
-                .id(verificationOTP.getId())
-                .createdAt(verificationOTP.getCreatedAt())
+                .id(onetimePassword.getId())
+                .createdAt(onetimePassword.getCreatedAt())
                 .expiresAt(expiresAt)
                 .build();
 
         return ResponseEntity.ok(responseBody);
     }
 
-    @PatchMapping("verify")
+    @PatchMapping
     public ResponseEntity<?> performVerification(@RequestBody Map<String, String> body, HttpServletResponse response) {
         // TODO: JMO-13: Method body will have to actually check otp sent via Twilio message
         String id = body.get("id");
         String otp = body.get("otp");
         String authDetailToken = body.get("authDetail");
 
-        if (!verificationOTPService.isOTPMatch(id, otp)) {
+        if (!verificationService.isOTPMatch(id, otp)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
 
-        VerificationOTP verificationOTP = verificationOTPService.loadAndDeleteOTPById(id);
+        OnetimePassword onetimePassword = verificationService.loadAndDeleteOTPById(id);
 
-        String linkableUserId = verificationOTP.getLinkableUserId();
+        String linkableUserId = onetimePassword.getLinkableUserId();
         if (linkableUserId == null) {
             return ResponseEntity.noContent().build();
         }

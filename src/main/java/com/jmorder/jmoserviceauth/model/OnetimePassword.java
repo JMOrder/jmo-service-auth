@@ -12,7 +12,7 @@ import java.util.Date;
 
 @Document
 @Data
-public class VerificationOTP {
+public class OnetimePassword {
     private static final int DEFAULT_EXPIRY_DURATION_IN_SECONDS = 5 * 60;
 
     @Id
@@ -34,7 +34,7 @@ public class VerificationOTP {
         return DEFAULT_EXPIRY_DURATION_IN_SECONDS;
     }
 
-    public VerificationOTP(String phone, String linkableUserId) {
+    public OnetimePassword(String phone, String linkableUserId) {
         this.phone = phone;
         this.linkableUserId = linkableUserId;
         this.otp = this.generateOTP();

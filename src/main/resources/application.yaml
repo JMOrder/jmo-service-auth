@@ -1,6 +1,6 @@
 server:
   port: 3001
-  error.include-stacktrace: never
+#  error.include-stacktrace: never
 
 spring:
   application:

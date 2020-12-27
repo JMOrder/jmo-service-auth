@@ -1,7 +1,7 @@
 package com.jmorder.jmoserviceauth.service;
 
 import com.jmorder.jmoserviceauth.model.User;
-import com.jmorder.jmoserviceauth.model.VerificationOTP;
+import com.jmorder.jmoserviceauth.model.OnetimePassword;
 import com.jmorder.jmoserviceauth.service.exceptions.ResourceNotFoundException;
 import com.jmorder.jmoserviceauth.util.FirebaseDynamicLink;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +14,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class VerificationOTPService {
-    private static final Class<VerificationOTP> ENTITY_CLASS = VerificationOTP.class;
+public class VerificationService {
+    private static final Class<OnetimePassword> ENTITY_CLASS = OnetimePassword.class;
     @Autowired
     UserService userService;
 
@@ -29,17 +29,18 @@ public class VerificationOTPService {
         return mongoTemplate.exists(Query.query(Criteria.where("id").is(id).and("otp").is(otp)), ENTITY_CLASS);
     }
 
-    public VerificationOTP loadVerificationOTPById(String id) {
+    public OnetimePassword loadVerificationOTPById(String id) {
         return mongoTemplate.findById(id, ENTITY_CLASS);
     }
 
-    public VerificationOTP loadAndDeleteOTPById(String id) {
-        VerificationOTP verificationOTP = mongoTemplate.findAndRemove(Query.query(Criteria.where("id").is(id)), ENTITY_CLASS);
-        if (verificationOTP == null) throw new ResourceNotFoundException();
-        return verificationOTP;
+    public OnetimePassword loadAndDeleteOTPById(String id) {
+        OnetimePassword onetimePassword = mongoTemplate.findAndRemove(Query.query(Criteria.where("id").is(id)), ENTITY_CLASS);
+        if (onetimePassword == null) throw new ResourceNotFoundException();
+        return onetimePassword;
     }
 
-    public VerificationOTP createVerificationOTP(String phone) {
+    public OnetimePassword createVerificationOTP(String phone) {
+        log.info(phone);
         String linkableUserId;
         try {
             User linkableUser = userService.loadUserByUsername(phone);
@@ -47,7 +48,7 @@ public class VerificationOTPService {
         } catch (UsernameNotFoundException e) {
             linkableUserId = null;
         }
-        VerificationOTP verificationOTP = new VerificationOTP(phone, linkableUserId);
-        return mongoTemplate.insert(verificationOTP);
+        OnetimePassword onetimePassword = new OnetimePassword(phone, linkableUserId);
+        return mongoTemplate.insert(onetimePassword);
     }
 }
